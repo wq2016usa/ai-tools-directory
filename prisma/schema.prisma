@@ -1,0 +1,131 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum PricingModel {
+  FREE
+  FREEMIUM
+  PAID
+  OSS
+  ENTERPRISE
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum CommentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ---------------------------------------------------------------------------
+// Core directory models
+// ---------------------------------------------------------------------------
+
+model Category {
+  id   String @id @default(cuid())
+  name String @unique
+  slug String @unique
+
+  tools ToolCategory[]
+}
+
+model Tag {
+  id   String @id @default(cuid())
+  name String @unique
+  slug String @unique
+
+  tools ToolTag[]
+}
+
+model Tool {
+  id             String       @id @default(cuid())
+  slug           String       @unique
+  name           String
+  tagline        String?
+  description    String?
+  websiteUrl     String?
+  pricingModel   PricingModel
+  platforms      String[]     @default([])
+  apiAvailable   Boolean      @default(false)
+  openSource     Boolean      @default(false)
+  pros           String[]     @default([])
+  cons           String[]     @default([])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  lastReviewedAt DateTime?
+
+  categories ToolCategory[]
+  tags       ToolTag[]
+  comments   Comment[]
+}
+
+model ToolCategory {
+  toolId     String
+  categoryId String
+
+  tool     Tool     @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([toolId, categoryId])
+  @@index([categoryId])
+  @@index([toolId])
+}
+
+model ToolTag {
+  toolId String
+  tagId  String
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([toolId, tagId])
+  @@index([tagId])
+  @@index([toolId])
+}
+
+// ---------------------------------------------------------------------------
+// Future-ready (not used yet)
+// ---------------------------------------------------------------------------
+
+model User {
+  id    String   @id @default(cuid())
+  email String   @unique
+  name  String?
+  role  UserRole @default(USER)
+
+  comments Comment[]
+}
+
+model Comment {
+  id        String        @id @default(cuid())
+  toolId    String
+  userId    String
+  content   String
+  status    CommentStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([toolId])
+  @@index([userId])
+  @@index([status])
+}
